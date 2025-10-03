@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blush & Blow Chatbot</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+
+  .chat-container {
+    width: 95%;
+    max-width: 400px;
+    height: 470px; 
+    background-color: black;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .chat-header {
+    background-color: #e3b174;
+    color: black;
+    text-align: center;
+    padding: 10px;
+    font-size: 1.2em;
+    font-weight: bold;
+  }
+
+  .chat-body {
+    flex: 1;
+    padding: 15px;
+    background-color: black;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    color: #e3b174;
+  }
+
+  .chat-body::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 70%;
+    width: 300px;
+    height: 300px;
+    max-width: 60%;
+    transform: translate(-50%, -50%);
+    background-image: url('logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    opacity: 0.2;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .message {
+    margin: 8px 0;
+    padding: 10px;
+    border-radius: 10px;
+    max-width: 75%;
+    word-wrap: break-word;
+    font-size: 14px;
+    z-index: 1;
+  }
+
+  .user-message {
+    background-color: rgba(227,177,116,0.9);
+    align-self: flex-end;
+    color: black;
+  }
+
+  .bot-message {
+    background-color: rgba(227,177,116,0.3);
+    align-self: flex-start;
+    color: #e3b174;
+  }
+
+  .chat-footer {
+    display: flex;
+    border-top: 1px solid #ddd;
+    background-color: #000;
+  }
+
+select,
+input[type="date"],
+input[type="time"] {
+  background-color: rgba(227, 177, 116, 0.15);
+  color: #e3b174;
+  font-family: 'Poppins', sans-serif;
+  padding: 6px 10px; /* smaller height */
+  font-size: 13px;
+  border: 1px solid #e3b174;
+  border-radius: 10px;
+  margin-top: 6px;
+  margin-bottom: 8px;
+  width: 80%;  /* reduced width */
+  box-sizing: border-box;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(227, 177, 116, 0.3);
+  transition: all 0.3s ease;
+}
+
+select:focus,
+input[type="date"]:focus,
+input[type="time"]:focus {
+  outline: none;
+  border-color: #fff2d9;
+  box-shadow: 0 0 6px 1px rgba(227, 177, 116, 0.6);
+  background-color: rgba(227, 177, 116, 0.25);
+  color: #ffffff;
+}
+  
+input, select {
+    flex: 1;
+    border: none;
+    padding: 12px;
+    font-size: 14px;
+    border-radius: 0 0 0 15px;
+    outline: none;
+    color: black;
+  }
+
+  button {
+    background-color: #e3b174;
+    color: black;
+    border: none;
+    padding: 0 20px;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 0 0 15px 0;
+    transition: background-color 0.2s;
+  }
+
+  button:hover {
+    background-color: #d1a960;
+  }
+
+  .menu-number {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+    background-color: #e3b174;
+    color: black;
+    font-weight: bold;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-right: 6px;
+    font-size: 11px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: background-color 0.2s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .menu-number:hover {
+    background-color: #d1a960;
+    transform: scale(1.2);
+  }
+
+  .menu-item {
+    margin: 6px 0;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    z-index: 1;
+  }
+
+  .pulse {
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+  }
+
+  .back-button {
+    display: inline-block;
+    background-color: #e3b174;
+    color: black;
+    padding: 5px 12px;
+    border-radius: 20px 0 0 20px;
+    cursor: pointer;
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .back-button:hover {
+    background-color: #d1a960;
+  }
+</style>
+</head>
+<body>
+<div class="chat-container">
+  <div class="chat-header">💅 Blush & Blow Chatbot</div>
+  <div class="chat-body" id="chatBody"></div>
+  <div class="chat-footer">
+    <input type="text" id="numberInput" placeholder="Type number here...">
+    <button onclick="handleEnter()">Send</button>
+  </div>
+</div>
+
+<script>
+const chatBody = document.getElementById('chatBody');
+const numberInput = document.getElementById('numberInput');
+
+const languages = ["English", "اردو", "پښتو", "بلوچی"];
+let selectedLanguage = "English";
+let currentScreen = "language"; // language, mainMenu, serviceMenu, subService, appointment
+
+// Data
+const mainMenuData = {
+  "English": ["Services","Locations","Timings","Policies","Exit"],
+  "اردو": ["خدمات","مقامات","وقت","پالیسیاں","خروج"],
+  "پښتو": ["خدمات","ځایونه","وختونه","پالیسۍ","وتل"],
+  "بلوچی": ["خدمات","مقامات","اوقات","پالیسیاں","خروج"]
+};
+
+const servicesData = {
+  "English": {
+    "Hair Work":["Hair Protein ₨2000","Keratin Treatment ₨2500","Low Lights ₨1500","Hi-Lights ₨1500","Hair Color ₨2000","Hair Cut ₨800","Balayage ₨2500"],
+    "Nails":["Manicure ₨1000","Pedicure ₨1200","Nail Art ₨800","Nail Polish ₨500","Nail Extensions ₨1500"],
+    "Facials":["Basic Facial ₨1500","Deep Cleansing ₨2000","Anti-Aging ₨2500","Hydrating ₨2000","Acne Treatment ₨1800","Brightening ₨2200","Gold Facial ₨3500"],
+    "Eyes":["Eyelash Extensions ₨2000","Eyebrow Threading ₨500","Eyeliner ₨600","Eye Tint ₨400","Lash Lift ₨1800","Brow Lamination ₨1500","Brow Tint ₨500"],
+    "Mehandi":["Basic Mehandi ₨1000","Bridal Mehandi ₨5000","Party Mehandi ₨2000","Glitter Mehandi ₨1500","Arabic Mehandi ₨1800"],
+    "Bridal":["Bridal Makeup ₨8000","Trial Makeup ₨2000","Bridal Hair Styling ₨4000","Henna Design ₨1500","Bridal Package ₨15000","Bridal Skincare ₨3000","Bridal Consultation ₨1000"],
+    "Party Makeup":["Party Makeup ₨3500","Evening Makeup ₨2500","Glam Makeup ₨4000","Event Makeup ₨3000","Makeup Tutorial ₨1500","Makeup Touchup ₨1000","Photo Shoot Makeup ₨4500"]
+  },
+  "اردو": {
+    "بالوں کے کام":["ہیر پروٹین ₨2000","کریٹن ٹریٹمنٹ ₨2500","لو لائٹس ₨1500","ہائی لائٹس ₨1500","ہیر کلر ₨2000","ہیر کٹ ₨800","بیلیج ₨2500"],
+    "ناخن":["منی کیور ₨1000","پیڈی کیور ₨1200","نیل آرٹ ₨800","نیل پالش ₨500","نیل ایکسٹینشن ₨1500"],
+    "چہرہ":["بیسک فیشل ₨1500","ڈیپ کلینسنگ ₨2000","اینٹی ایجنگ ₨2500","ہائیڈریٹنگ ₨2000","اکنی ٹریٹمنٹ ₨1800","برائٹننگ ₨2200","گولڈ فیشل ₨3500"],
+    "آنکھیں":["آئیلش ایکسٹینشن ₨2000","آئی برو تھریڈنگ ₨500","آئی لائنر ₨600","آئی ٹنٹ ₨400","لاش لفٹ ₨1800","برو لیمینیشن ₨1500","برو ٹنٹ ₨500"],
+    "مہندی":["بیسک مہندی ₨1000","برائیڈل مہندی ₨5000","پارٹی مہندی ₨2000","گلٹر مہندی ₨1500","عربی مہندی ₨1800"],
+    "برائیڈل":["برائیڈل میک اپ ₨8000","ٹرائل میک اپ ₨2000","برائیڈل ہیر اسٹائل ₨4000","ہننا ڈیزائن ₨1500","برائیڈل پیکج ₨15000","برائیڈل سکن کیئر ₨3000","برائیڈل کنسلٹیشن ₨1000"],
+    "پارٹی میک اپ":["پارٹی میک اپ ₨3500","ایوننگ میک اپ ₨2500","گلیم میک اپ ₨4000","ایونٹ میک اپ ₨3000","میک اپ ٹیوٹوریل ₨1500","میک اپ ٹچ اپ ₨1000","فوٹو شوٹ میک اپ ₨4500"]
+  },
+"پښتو": {
+    "د ویښتو کار":["د ویښتو پروټین ₨2000","کریټین درملنه ₨2500","ټیټ څراغونه ₨1500","لوړ څراغونه ₨1500","د ویښتو رنګ ₨2000","ویښتو پرې کول ₨800","بالیاژ ₨2500"],
+    "نوکان":["منی کیور ₨1000","پیډیکور ₨1200","نوک آرټ ₨800","نوک پولش ₨500","نوک ایکسټینشن ₨1500"],
+    "فیشلونه":["بنسټیز فیشل ₨1500","ژور پاکوالی ₨2000","ضد عمر ₨2500","هایډریټینګ ₨2000","داغ درملنه ₨1800","روښانتیا ₨2200","طلایي فیشل ₨3500"],
+    "سترګې":["د مژه اوږدول ₨2000","د ابرو تار کول ₨500","د سترګو لاینر ₨600","د سترګو ټینټ ₨400","لاش لیفټ ₨1800","د ابرو لامینیشن ₨1500","د ابرو ټینټ ₨500"],
+    "مهندي":["بنسټیز مهندي ₨1000","د ودونو مهندي ₨5000","پارټي مهندي ₨2000","ګلیټر مهندي ₨1500","عربي مهندي ₨1800"],
+    "واده":["د واده میک اپ ₨8000","ازمایښتي میک اپ ₨2000","د واده ویښتان سټایل ₨4000","حنه ډیزاین ₨1500","د واده پیکج ₨15000","د واده پوستکي پاملرنه ₨3000","د واده مشوره ₨1000"],
+    "پارټي میک اپ":["پارټي میک اپ ₨3500","د ماښام میک اپ ₨2500","ګلیم میک اپ ₨4000","د پیښې میک اپ ₨3000","میک اپ ښوونه ₨1500","میک اپ ټچ اپ ₨1000","عکس اخیستنې میک اپ ₨4500"]
+  },
+  "بلوچی": {
+    "کال سر کار":["کال سر پروټین ₨2000","کریټین علاج ₨2500","کم رڼا ₨1500","زیادہ رڼا ₨1500","کال رنگ ₨2000","کال کٹ ₨800","بالایج ₨2500"],
+    "ناخن":["منی کیور ₨1000","پیڈی کیور ₨1200","ناخن آرٹ ₨800","ناخن پالش ₨500","ناخن توسیع ₨1500"],
+    "چہرہ":["بنیادی چہرہ صاف کرنا ₨1500","گہرا صفائی ₨2000","اینٹی ایجنگ ₨2500","نمی بخش ₨2000","دھبہ علاج ₨1800","روشن کرنا ₨2200","گولڈ فیشل ₨3500"],
+    "آنکھیں":["مژہ توسیع ₨2000","بھنویں تھریڈنگ ₨500","آئ لائنر ₨600","آئی ٹنٹ ₨400","لاش لفٹ ₨1800","بھنویں لیمینیشن ₨1500","بھنویں ٹنٹ ₨500"],
+    "مہندی":["بنیادی مہندی ₨1000","دلہن مہندی ₨5000","پارٹی مہندی ₨2000","چمکدار مہندی ₨1500","عربی مہندی ₨1800"],
+    "دلہن":["دلہن میک اپ ₨8000","آزمائشی میک اپ ₨2000","دلہن کے بالوں کی سجاوٹ ₨4000","حناء ڈیزائن ₨1500","دلہن پیکج ₨15000","دلہن کی جلد کی دیکھ بھال ₨3000","دلہن مشورہ ₨1000"],
+    "پارٹی میک اپ":["پارٹی میک اپ ₨3500","شام کا میک اپ ₨2500","گلیمر میک اپ ₨4000","ایونٹ میک اپ ₨3000","میک اپ سبق ₨1500","میک اپ ٹچ اپ ₨1000","فوٹو شوٹ میک اپ ₨4500"]
+  }
+  // Similarly add Pashto and Balochi if needed
+};
+
+const locationsData = {
+  "English":["360-C Chiltan Housing Scheme Quetta","260-C Samungli Housing Scheme Quetta"],
+  "اردو":["360-C چلتن ہاؤسنگ اسکیم کوئٹہ","260-C سمنگلی ہاؤسنگ اسکیم کوئٹہ"]
+};
+
+const timingsData = {
+  "English":["11 AM - 9 PM, 7 days a week"],
+  "اردو":["صبح 11 بجے تا رات 9 بجے، 7 دن"]
+};
+
+const policiesData = {
+  "English":["No children and men allowed","Only one attendant allowed, any loss charged","Advance payment is non-refundable","Take care of appointment timings"],
+  "اردو":["بچوں اور مردوں کی اجازت نہیں","صرف ایک ساتھ آنے والا، کسی نقصان کی قیمت وصول کی جائے گی","ایڈوانس ادائیگی ناقابل واپسی ہے","اپائنٹمنٹ کے وقت کا خیال رکھیں"]
+};
+
+let appointmentData = {branch:'', date:'', time:'', service:''};
+
+// ---------------- Language Screen ----------------
+function showLanguageScreen() {
+  chatBody.innerHTML = "";
+  currentScreen="language";
+  languages.forEach((lang,index)=>{
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    const span=document.createElement('span');
+    span.classList.add('menu-number','pulse');
+    span.textContent=index+1;
+    span.onclick=()=> selectLanguage(lang);
+    div.appendChild(span);
+    div.appendChild(document.createTextNode(" "+lang));
+    chatBody.appendChild(div);
+  });
+}
+
+// ---------------- Main Menu ----------------
+function showMainMenu() {
+  chatBody.innerHTML = "";
+  currentScreen="mainMenu";
+  mainMenuData[selectedLanguage].forEach((item,index)=>{
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    const span=document.createElement('span');
+    span.classList.add('menu-number','pulse');
+    span.textContent=index+1;
+    span.onclick=()=> handleMainMenu(index+1);
+    div.appendChild(span);
+    div.appendChild(document.createTextNode(" "+item));
+    chatBody.appendChild(div);
+  });
+}
+
+// ---------------- Main Menu Handler ----------------
+function handleMainMenu(number){
+  switch(number){
+    case 1: showServicesScreen(); break;
+    case 2: showLocationsScreen(); break;
+    case 3: showTimingsScreen(); break;
+    case 4: showPoliciesScreen(); break;
+    case 5: showLanguageScreen(); break;
+  }
+}
+
+// ---------------- Screens ----------------
+function showServicesScreen(){
+  chatBody.innerHTML="";
+  currentScreen="services";
+  // Back Button
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent="← Back";
+  backBtn.onclick=showMainMenu;
+  chatBody.appendChild(backBtn);
+
+  const services = Object.keys(servicesData[selectedLanguage]);
+  services.forEach((service,index)=>{
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    const span=document.createElement('span');
+    span.classList.add('menu-number','pulse');
+    span.textContent=index+1;
+    span.onclick=()=> showSubServiceScreen(service);
+    div.appendChild(span);
+    div.appendChild(document.createTextNode(" "+service));
+    chatBody.appendChild(div);
+  });
+}
+
+// Sub Services Screen
+function showSubServiceScreen(service){
+  chatBody.innerHTML="";
+  currentScreen="subService";
+  appointmentData.service=service;
+
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent="← Back";
+  backBtn.onclick=showServicesScreen;
+  chatBody.appendChild(backBtn);
+
+  const subServices = servicesData[selectedLanguage][service];
+  subServices.forEach((sub,index)=>{
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    const span=document.createElement('span');
+    span.classList.add('menu-number','pulse');
+    span.textContent=index+1;
+    span.onclick=()=> showAppointmentScreen(sub);
+    div.appendChild(span);
+    div.appendChild(document.createTextNode(" "+sub));
+    chatBody.appendChild(div);
+  });
+}
+
+// Appointment Screen
+function showAppointmentScreen(subService){
+  chatBody.innerHTML="";
+  currentScreen="appointment";
+  appointmentData.service=subService;
+
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent="← Back";
+  backBtn.onclick=()=>showSubServiceScreen(appointmentData.service.split(' ₨')[0]);
+  chatBody.appendChild(backBtn);
+
+  // Branch Selection
+
+  const branchDiv=document.createElement('div');
+  branchDiv.classList.add('menu-item');
+  const branchLabel=document.createElement('div');
+  branchLabel.textContent="Select Branch:";
+  branchDiv.appendChild(branchLabel);
+  const branchSelect=document.createElement('select');
+  const branches = locationsData[selectedLanguage];
+  branches.forEach((b)=>{ const opt=document.createElement('option'); opt.value=b; opt.textContent=b; branchSelect.appendChild(opt); });
+  branchDiv.appendChild(branchSelect);
+  chatBody.appendChild(branchDiv);
+
+  // Date input
+  const dateDiv=document.createElement('div');
+  dateDiv.classList.add('menu-item');
+  const dateLabel=document.createElement('div');
+  dateLabel.textContent="Select Date:";
+  dateDiv.appendChild(dateLabel);
+  const dateInput=document.createElement('input');
+  dateInput.type="date";
+  dateDiv.appendChild(dateInput);
+  chatBody.appendChild(dateDiv);
+
+  // Time input
+  const timeDiv=document.createElement('div');
+  timeDiv.classList.add('menu-item');
+  const timeLabel=document.createElement('div');
+  timeLabel.textContent="Select Time:";
+  timeDiv.appendChild(timeLabel);
+  const timeInput=document.createElement('input');
+  timeInput.type="time";
+  timeDiv.appendChild(timeInput);
+  chatBody.appendChild(timeDiv);
+
+  // Book Button
+  const bookBtn=document.createElement('button');
+  bookBtn.textContent="Book Appointment";
+  bookBtn.onclick=()=>{
+    if(!branchSelect.value || !dateInput.value || !timeInput.value){
+      alert("Please select branch, date, and time.");
+      return;
+    }
+    appointmentData.branch=branchSelect.value;
+    appointmentData.date=dateInput.value;
+    appointmentData.time=timeInput.value;
+
+    chatBody.innerHTML="";
+    const msg=document.createElement('div');
+    msg.classList.add('bot-message','message');
+    msg.innerHTML=`Appointment for <b>${appointmentData.service}</b> booked!<br>
+    Branch: ${appointmentData.branch}<br>Date: ${appointmentData.date}<br>Time: ${appointmentData.time}<br>
+    Please pay 50% in advance at: <b> Bank: Bank Al-Habib, A/C: 11640981001260016, IBAN: PK31BAHL1164098100126001</b> (Non-Refundable) </b> Easy Paisa: 03338877858`;
+    chatBody.appendChild(msg);
+ // Add Home Button
+    const homeBtn = document.createElement('div');
+    homeBtn.classList.add('back-button');
+    homeBtn.textContent = "🏠 Home";
+    homeBtn.onclick = showLanguageScreen;
+    chatBody.appendChild(homeBtn);
+
+
+  }
+  chatBody.appendChild(bookBtn);
+}
+
+// Locations Screen
+function showLocationsScreen(){
+  chatBody.innerHTML="";
+  currentScreen="locations";
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent="← Back";
+  backBtn.onclick=showMainMenu;
+  chatBody.appendChild(backBtn);
+
+  const locations=locationsData[selectedLanguage];
+  locations.forEach((loc,index)=>{
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    const span=document.createElement('span');
+    span.classList.add('menu-number','pulse');
+    span.textContent=index+1;
+    div.appendChild(span);
+    div.appendChild(document.createTextNode(" "+loc));
+    chatBody.appendChild(div);
+  });
+}
+
+// Timings Screen
+function showTimingsScreen(){
+  chatBody.innerHTML="";
+  currentScreen="timings";
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent="← Back";
+  backBtn.onclick=showMainMenu;
+  chatBody.appendChild(backBtn);
+
+  const timings=timingsData[selectedLanguage];
+  timings.forEach((t)=>{ 
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    div.textContent=t;
+    chatBody.appendChild(div);
+  });
+}
+
+// Policies Screen
+function showPoliciesScreen(){
+  chatBody.innerHTML="";
+  currentScreen="policies";
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent="← Back";
+  backBtn.onclick=showMainMenu;
+  chatBody.appendChild(backBtn);
+
+  const policies=policiesData[selectedLanguage];
+  policies.forEach((p)=>{ 
+    const div=document.createElement('div');
+    div.classList.add('menu-item');
+    div.textContent=p;
+    chatBody.appendChild(div);
+  });
+}
+
+// ---------------- Language Select ----------------
+function selectLanguage(lang){
+  selectedLanguage=lang;
+  showMainMenu();
+}
+
+// ---------------- Input Enter ----------------
+function handleEnter(){
+  const val=parseInt(numberInput.value.trim());
+  if(currentScreen==="language"){
+    if(val>=1 && val<=languages.length){ selectLanguage(languages[val-1]); }
+  } else if(currentScreen==="mainMenu"){
+    if(val>=1 && val<=5){ handleMainMenu(val); }
+  } else if(currentScreen==="services"){
+    const services=Object.keys(servicesData[selectedLanguage]);
+    if(val>=1 && val<=services.length) showSubServiceScreen(services[val-1]);
+  } else if(currentScreen==="subService"){
+    const subServices = servicesData[selectedLanguage][appointmentData.service];
+    if(val>=1 && val<=subServices.length) showAppointmentScreen(subServices[val-1]);
+  } else if(currentScreen==="locations"){
+    const locs=locationsData[selectedLanguage];
+    if(val>=1 && val<=locs.length) alert("Selected location: "+locs[val-1]);
+  }
+  numberInput.value="";
+}
+   
+
+// Enter key
+numberInput.addEventListener('keydown', function(e){
+  if(e.key==="Enter") handleEnter();
+});
+
+// Initialize
+showLanguageScreen();
+</script>
+</body>
+</html>
