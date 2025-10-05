@@ -18,7 +18,8 @@
   .chat-container {
     width: 95%;
     max-width: 400px;
-    height: 470px; 
+    height: 80vh; /* flexible height */
+    min-height: 400px; /* ensure usability */ 
     background-color: black;
     border-radius: 15px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
@@ -90,6 +91,8 @@
     display: flex;
     border-top: 1px solid #ddd;
     background-color: #000;
+    position: sticky;
+    bottom: 0;
   }
 
 select,
@@ -202,6 +205,29 @@ input, select {
   .back-button:hover {
     background-color: #d1a960;
   }
+/* === Improved Message Spacing === */
+#chatBody p,
+.message {
+  line-height: 1.9;          /* More vertical space between lines */
+  margin-bottom: 14px;       /* Space between each chat bubble */
+  padding: 10px 12px;        /* Adds more clickable area */
+  border-radius: 10px;
+  font-size: 16px;           /* Slightly larger text for readability */
+}
+
+/* === Improve spacing for menu items === */
+.menu-item {
+  margin: 10px 0;
+  line-height: 1.8;
+}
+
+/* === Improve tap area for buttons === */
+button {
+  padding: 10px 22px;
+  font-size: 15px;
+}
+
+
 </style>
 </head>
 <body>
@@ -218,6 +244,11 @@ input, select {
 const chatBody = document.getElementById('chatBody');
 const numberInput = document.getElementById('numberInput');
 
+function scrollToBottom(){
+    chatBody.scrollTop = chatBody.scrollHeight;
+}
+
+
 const languages = ["English", "اردو", "پښتو", "بلوچی"];
 let selectedLanguage = "English";
 let currentScreen = "language"; // language, mainMenu, serviceMenu, subService, appointment
@@ -225,12 +256,21 @@ let currentService = "";
 
 // Data
 const mainMenuData = {
-  "English": ["Services","Locations","Timings","Policies","Current Deals","Exit"],
-  "اردو": ["خدمات","مقامات","وقت","پالیسیاں","موجودہ ڈیلز","خروج"],
-  "پښتو": ["خدمات","ځایونه","وختونه","پالیسۍ","اوسني وړاندیزونه","وتل"],
-  "بلوچی": ["خدمات","مقامات","اوقات","پالیسیاں","موجودہ ڈیلز","خروج"]
-
+  "English": [
+    "Services",
+    "Locations",
+    "Timings",
+    "Policies",
+    "Current Deals",
+    "Social Media",
+    "Assistant",
+    "Exit"
+  ],
+  "اردو": ["خدمات","مقامات","وقت","پالیسیاں","موجودہ ڈیلز","سوشل میڈیا","اسسٹنٹ","خروج"],
+  "پښتو": ["خدمات","ځایونه","وختونه","پالیسۍ","اوسني وړاندیزونه","ټولنیز رسنۍ","مرستیال","وتل"],
+  "بلوچی": ["خدمات","مقامات","اوقات","پالیسیاں","موجودہ ڈیلز","سوشل میڈیا","اسسٹنٹ","خروج"]
 };
+
 
 const servicesData = {
   "English": {
@@ -357,10 +397,73 @@ function handleMainMenu(number){
     case 2: showLocationsScreen(); break;
     case 3: showTimingsScreen(); break;
     case 4: showPoliciesScreen(); break;
-    case 5: showDealsScreen(); break;   // ✅ current deals
-    case 6: showLanguageScreen(); break; // Exit
+    case 5: showDealsScreen(); break;
+    case 6: showSocialMediaScreen(); break;  // ✅ new
+    case 7:
+      if(selectedLanguage === "English") showAssistantScreen();
+      else alert("Assistant is available only in English.");
+      break;
+    case 8: showLanguageScreen(); break; // ✅ exit
   }
 }
+
+
+function showAssistantScreen(){
+  chatBody.innerHTML = "";       // Clear previous messages
+  currentScreen = "assistant";   // Update current screen
+  numberInput.placeholder = "Ask me anything..."; // Show a prompt
+  numberInput.type = "text";     // Make sure it's text input
+
+  // Back button
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent = "← Back";
+  backBtn.onclick = showMainMenu;
+  chatBody.appendChild(backBtn);
+
+  // Assistant welcome message
+  const info = document.createElement('div');
+  info.classList.add('bot-message', 'message');
+  info.textContent = "Hello! I am your English Assistant. Ask me anything.";
+  chatBody.appendChild(info);
+
+  scrollToBottom();
+}
+
+function addUserMessage(msg){
+  const div = document.createElement('div');
+  div.classList.add('user-message','message'); // use your CSS classes
+  div.textContent = msg;
+  chatBody.appendChild(div);
+  scrollToBottom(); // optional, scroll to latest message
+}
+
+async function sendToGPT(message){
+  addBotMessage("Processing...");
+
+  try {
+    const res = await fetch("http://localhost:3000/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message })
+    });
+    const data = await res.json();
+    addBotMessage(data.reply);
+  } catch(err) {
+    addBotMessage("Error connecting to GPT API.");
+    console.error(err);
+  }
+}
+
+function addBotMessage(msg){
+  const div = document.createElement('div');
+  div.classList.add('bot-message', 'message');
+  div.textContent = msg;
+  chatBody.appendChild(div);
+  scrollToBottom();
+}
+
+
 
 // ---------------- Screens ----------------
 function showServicesScreen(){
@@ -498,17 +601,31 @@ function showAppointmentScreen(subService){
 
 
 // Deals Screen
-function showDealsScreen(){
-  
-  chatBody.innerHTML="";
-  currentScreen="deals";
+function showDealsScreen() {
+  chatBody.innerHTML = "";
+  currentScreen = "deals";
 
-  const backBtn = document.createElement('div');
-  backBtn.classList.add('back-button');
-  backBtn.textContent="← Back";
-  backBtn.onclick=showMainMenu;
+  // Back button to go home
+  const backBtn = document.createElement("div");
+  backBtn.classList.add("back-button");
+  backBtn.textContent = selectedLanguage === "English" ? "← Back" :
+                        selectedLanguage === "اردو" ? "← واپس جائیں" :
+                        selectedLanguage === "پښتو" ? "← شاته لاړ شئ" :
+                        "← واپس";
+  backBtn.onclick = showMainMenu;
   chatBody.appendChild(backBtn);
 
+  // Heading
+  const heading = document.createElement("div");
+  heading.classList.add("chat-heading");
+  heading.textContent =
+    selectedLanguage === "English" ? "✨ Our Exclusive Deals ✨" :
+    selectedLanguage === "اردو" ? "✨ ہماری خصوصی ڈیلز ✨" :
+    selectedLanguage === "پښتو" ? "✨ زموږ ځانګړې معاملې ✨" :
+    "✨ ہماری خاص ڈیلز ✨";
+  chatBody.appendChild(heading);
+
+  // Deals per language
   const deals = {
     "English": [
       "🌟 Golden Glam Deal – 20% OFF Bridal Makeup (valid till Oct 15)",
@@ -532,19 +649,41 @@ function showDealsScreen(){
     ]
   };
 
-  deals[selectedLanguage].forEach(d=>{
-    const div=document.createElement('div');
-    div.classList.add('menu-item');
-    div.textContent=d;
+  // Create deal buttons
+  deals[selectedLanguage].forEach((dealText) => {
+    const div = document.createElement("div");
+    div.classList.add("menu-item");
+    div.style.cursor = "pointer";
+    div.textContent = dealText;
+
+    div.onclick = () => {
+      // Popup confirmation
+      const confirmMsg =
+        selectedLanguage === "English"
+          ? "Do you want to avail this deal?"
+          : selectedLanguage === "اردو"
+          ? "کیا آپ یہ ڈیل حاصل کرنا چاہتے ہیں؟"
+          : selectedLanguage === "پښتو"
+          ? "ایا تاسو دا معامله اخیستل غواړئ؟"
+          : "کیا آپ یہ ڈیل لینا چاہتے ہیں؟";
+
+      if (confirm(confirmMsg)) {
+        appointmentData.parentService = "Deals";
+        appointmentData.service = dealText;
+        showAppointmentScreen(dealText);
+      }
+    };
+
     chatBody.appendChild(div);
   });
-}   // ✅ now the function closes properly
+}
 
 
 // Locations Screen
 function showLocationsScreen(){
   chatBody.innerHTML="";
   currentScreen="locations";
+
   const backBtn = document.createElement('div');
   backBtn.classList.add('back-button');
   backBtn.textContent="← Back";
@@ -552,17 +691,63 @@ function showLocationsScreen(){
   chatBody.appendChild(backBtn);
 
   const locations=locationsData[selectedLanguage];
+  const mapLinks = {
+  "English": [
+    "https://www.google.com/maps?q=7X5C+9FM,+Chiltan+Housing+Society+Chiltan+Housing+Scheme,+Quetta,+Pakistan", // Chiltan
+    "https://maps.app.goo.gl/w1kS3czQDYPGdANi9" // Samungli
+  ],
+  "اردو": [
+    "https://www.google.com/maps?q=7X5C+9FM,+Chiltan+Housing+Society+Chiltan+Housing+Scheme,+Quetta,+Pakistan",
+    "https://maps.app.goo.gl/w1kS3czQDYPGdANi9"
+  ],
+  "پښتو": [
+    "https://www.google.com/maps?q=7X5C+9FM,+Chiltan+Housing+Society+Chiltan+Housing+Scheme,+Quetta,+Pakistan",
+    "https://maps.app.goo.gl/w1kS3czQDYPGdANi9"
+  ],
+  "بلوچی": [
+    "https://www.google.com/maps?q=7X5C+9FM,+Chiltan+Housing+Society+Chiltan+Housing+Scheme,+Quetta,+Pakistan",
+    "https://maps.app.goo.gl/w1kS3czQDYPGdANi9"
+  ]
+};
+
+
+
+  const openText = {
+    "English": "Open in Google Maps",
+    "اردو": "گوگل میپس میں کھولیں",
+    "پښتو": "په ګوګل میپس کې پرانیزئ",
+    "بلوچی": "گوگل میپسءَ کھولیں"
+  };
+
   locations.forEach((loc,index)=>{
     const div=document.createElement('div');
     div.classList.add('menu-item');
+
     const span=document.createElement('span');
     span.classList.add('menu-number','pulse');
     span.textContent=index+1;
     div.appendChild(span);
-    div.appendChild(document.createTextNode(" "+loc));
+
+    const locText = document.createTextNode(" " + loc);
+    div.appendChild(locText);
+
+    // Map link
+    const mapLink = document.createElement('a');
+    mapLink.href = mapLinks[selectedLanguage][index];
+    mapLink.target = "_blank";
+    mapLink.style.display = "block";
+    mapLink.style.fontSize = "13px";
+    mapLink.style.color = "#e3b174";
+    mapLink.style.textDecoration = "underline";
+    mapLink.textContent = openText[selectedLanguage];
+    div.appendChild(mapLink);
+
     chatBody.appendChild(div);
   });
+
+  scrollToBottom();
 }
+
 
 // Timings Screen
 function showTimingsScreen(){
@@ -602,6 +787,57 @@ function showPoliciesScreen(){
   });
 }
 
+// Social Media 
+function showSocialMediaScreen() {
+  chatBody.innerHTML = "";
+  currentScreen = "social";
+
+  // Back Button
+  const backBtn = document.createElement('div');
+  backBtn.classList.add('back-button');
+  backBtn.textContent = "← Back";
+  backBtn.onclick = showMainMenu;
+  chatBody.appendChild(backBtn);
+
+  // Heading
+  const heading = document.createElement('div');
+  heading.classList.add('bot-message', 'message');
+  heading.textContent = "🌐 Connect with us on Social Media:";
+  chatBody.appendChild(heading);
+
+  // Social links with icons
+  const links = [
+    { 
+      name: "TikTok",
+      url: "https://www.tiktok.com/@blushnblowofficial",
+      icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="#e3b174" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C12.4 2 12.8 2 13.2 2.1C14.8 2.2 16.3 2.9 17.4 4C18.3 4.9 19 6.1 19.3 7.5C19.7 9.1 19.9 10.9 20 12.5C20 12.9 19.9 13.2 19.7 13.5C19.3 14 18.7 14.3 18.1 14.3C17.4 14.3 16.8 13.9 16.5 13.3C16.2 12.8 16 12.1 16 11.4C16 9.8 15.9 8.3 15.7 6.7C15.6 6 15.1 5.4 14.5 5.1C13.7 4.7 12.8 4.5 12 4.5C10.1 4.5 8.3 5.3 7 6.6C5.6 8 4.9 9.9 5 11.9C5.1 13.8 6.1 15.6 7.7 16.8C8.8 17.6 10.1 18.1 11.4 18.2C12.2 18.3 12.9 18.6 13.5 19.1C14.1 19.7 14.4 20.5 14.3 21.3C14.2 22.1 13.7 22.8 13 23.2C11.4 24 9.6 24.4 7.8 24.3C6.1 24.3 4.5 23.8 3.2 22.9C1.8 21.9 0.8 20.5 0.3 18.9C0.1 18.3 0 17.7 0 17V7C0 6.4 0.1 5.8 0.3 5.2C0.8 3.6 1.8 2.2 3.2 1.2C4.5 0.3 6.1 -0.2 7.8 -0.3C9.6 -0.4 11.4 0 13 0.8C13.7 1.2 14.2 1.9 14.3 2.7C14.4 3.5 14.1 4.3 13.5 4.9C12.9 5.4 12.2 5.7 11.4 5.8C10.1 5.9 8.8 5.4 7.7 4.6C6.1 3.4 5.1 1.6 5 0C5 -0.3 5.1 -0.5 5.3 -0.7C5.5 -0.9 5.8 -1 6.1 -1C6.4 -1 6.7 -0.9 6.9 -0.7C7.7 0.1 8.6 0.6 9.7 0.9C10.7 1.3 11.9 1.5 13 1.5Z"/></svg>`
+    },
+    { 
+      name: "Instagram",
+      url: "https://www.instagram.com/blushandblow.official",
+      icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="#e3b174" xmlns="http://www.w3.org/2000/svg"><path d="M7.75 2H16.25C19.1 2 21.25 4.15 21.25 7V16.25C21.25 19.1 19.1 21.25 16.25 21.25H7.75C4.9 21.25 2.75 19.1 2.75 16.25V7C2.75 4.15 4.9 2 7.75 2ZM12 7C9.52 7 7.5 9.02 7.5 11.5C7.5 13.98 9.52 16 12 16C14.48 16 16.5 13.98 16.5 11.5C16.5 9.02 14.48 7 12 7ZM18 5.75C17.31 5.75 16.75 6.31 16.75 7C16.75 7.69 17.31 8.25 18 8.25C18.69 8.25 19.25 7.69 19.25 7C19.25 6.31 18.69 5.75 18 5.75ZM12 8.5C13.66 8.5 15 9.84 15 11.5C15 13.16 13.66 14.5 12 14.5C10.34 14.5 9 13.16 9 11.5C9 9.84 10.34 8.5 12 8.5Z"/></svg>`
+    },
+    { 
+      name: "Facebook",
+      url: "https://www.facebook.com/BlushnBlow.official",
+      icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="#e3b174" xmlns="http://www.w3.org/2000/svg"><path d="M22 12C22 6.47715 17.5228 2 12 2C6.47714 2 2 6.47715 2 12C2 17.0222 5.65786 21.1283 10.4375 21.8789V14.8906H7.89844V12H10.4375V9.79688C10.4375 7.29063 11.9305 5.90625 14.2178 5.90625C15.312 5.90625 16.4609 6.10156 16.4609 6.10156V8.5625H15.1977C13.9517 8.5625 13.5625 9.33398 13.5625 10.1289V12H16.3516L15.9062 14.8906H13.5625V21.8789C18.3421 21.1283 22 17.0222 22 12Z"/></svg>`
+    },
+    { 
+      name: "YouTube",
+      url: "https://www.youtube.com/@blushnblow",
+      icon: `<svg width="24" height="24" viewBox="0 0 24 24" fill="#e3b174" xmlns="http://www.w3.org/2000/svg"><path d="M19.615 3.184C21.24 3.64 22.36 4.782 22.816 6.384C23.556 8.992 23.556 12.992 23.556 12.992C23.556 12.992 23.556 16.992 22.816 19.6C22.36 21.2 21.24 22.344 19.615 22.8C17.008 23.544 12.992 23.544 12.992 23.544C12.992 23.544 8.976 23.544 6.368 22.8C4.744 22.344 3.6 21.2 3.144 19.6C2.4 16.992 2.4 12.992 2.4 12.992C2.4 12.992 2.4 8.992 3.144 6.384C3.6 4.782 4.744 3.64 6.368 3.184C8.976 2.44 12.992 2.44 12.992 2.44C12.992 2.44 17.008 2.44 19.615 3.184ZM10 8.992V16.992L16 12.992L10 8.992Z"/></svg>`
+    }
+  ];
+
+  links.forEach(link => {
+    const div = document.createElement('div');
+    div.classList.add('menu-item');
+    div.innerHTML = `${link.icon} <a href="${link.url}" target="_blank" style="color:#e3b174; margin-left:8px; text-decoration:none; font-weight:600;">${link.name}</a>`;
+    chatBody.appendChild(div);
+  });
+}
+
+
 // ---------------- Language Select ----------------
 function selectLanguage(lang){
   selectedLanguage=lang;
@@ -610,23 +846,58 @@ function selectLanguage(lang){
 
 // ---------------- Input Enter ----------------
 function handleEnter(){
-  const val=parseInt(numberInput.value.trim());
-  if(currentScreen==="language"){
-    if(val>=1 && val<=languages.length){ selectLanguage(languages[val-1]); }
-  } else if(currentScreen==="mainMenu"){
-    if(val>=1 && val<=6){ handleMainMenu(val); }
-  } else if(currentScreen==="services"){
-    const services=Object.keys(servicesData[selectedLanguage]);
-    if(val>=1 && val<=services.length) showSubServiceScreen(services[val-1]);
-  } else if(currentScreen==="subService"){
+  const val = numberInput.value.trim();
+
+  if(currentScreen === "language"){
+    const num = parseInt(val);
+    if(num >= 1 && num <= languages.length){
+      selectLanguage(languages[num-1]);
+    }
+  } 
+  else if(currentScreen === "mainMenu"){
+    const num = parseInt(val);
+    switch(num){
+      case 1: handleMainMenu(1); break;
+      case 2: handleMainMenu(2); break;
+      case 3: handleMainMenu(3); break;
+      case 4: handleMainMenu(4); break;
+      case 5: handleMainMenu(5); break;
+      case 6: handleMainMenu(6); break; // Assistant
+      case 7: handleMainMenu(7); break; // Exit
+      default: break;
+    }
+  } 
+  else if(currentScreen === "services"){
+    const services = Object.keys(servicesData[selectedLanguage]);
+    const num = parseInt(val);
+    if(num >= 1 && num <= services.length){
+      showSubServiceScreen(services[num-1]);
+    }
+  } 
+  else if(currentScreen === "subService"){
     const subServices = servicesData[selectedLanguage][appointmentData.service];
-    if(val>=1 && val<=subServices.length) showAppointmentScreen(subServices[val-1]);
-  } else if(currentScreen==="locations"){
-    const locs=locationsData[selectedLanguage];
-    if(val>=1 && val<=locs.length) alert("Selected location: "+locs[val-1]);
+    const num = parseInt(val);
+    if(num >= 1 && num <= subServices.length){
+      showAppointmentScreen(subServices[num-1]);
+    }
+  } 
+  else if(currentScreen === "locations"){
+    const locs = locationsData[selectedLanguage];
+    const num = parseInt(val);
+    if(num >= 1 && num <= locs.length){
+      alert("Selected location: "+locs[num-1]);
+    }
+  } 
+  else if(currentScreen === "assistant"){ // NEW for Assistant
+    if(val){
+      addUserMessage(val);  // show user message
+      sendToGPT(val);       // show simulated GPT reply
+    }
   }
-  numberInput.value="";
+
+  numberInput.value = ""; // clear input
 }
+
    
 
 // Enter key
@@ -637,5 +908,85 @@ numberInput.addEventListener('keydown', function(e){
 // Initialize
 showLanguageScreen();
 </script>
+
+<!-- Elegant Deal Popup -->
+<div id="dealPopup" class="popup-overlay">
+  <div class="popup-box">
+    <h3>Would you like to avail this deal?</h3>
+    <div class="popup-buttons">
+      <button onclick="confirmDeal()" class="yes-btn">Yes</button>
+      <button onclick="closePopup()" class="no-btn">No</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.popup-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.popup-box {
+  background: #fff;
+  padding: 25px;
+  border-radius: 16px;
+  text-align: center;
+  width: 300px;
+  box-shadow: 0 0 20px rgba(0,0,0,0.2);
+  animation: popupIn 0.25s ease;
+}
+.popup-box h3 {
+  margin-bottom: 20px;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+}
+.popup-buttons {
+  display: flex;
+  justify-content: space-around;
+}
+.yes-btn, .no-btn {
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.2s;
+}
+.yes-btn {
+  background-color: #e91e63;
+  color: #fff;
+}
+.no-btn {
+  background-color: #ddd;
+}
+.yes-btn:hover {
+  background-color: #c2185b;
+}
+.no-btn:hover {
+  background-color: #bbb;
+}
+@keyframes popupIn {
+  from {transform: scale(0.9); opacity: 0;}
+  to {transform: scale(1); opacity: 1;}
+}
+</style>
+
+<script>
+function showDealPopup() {
+  document.getElementById('dealPopup').style.display = 'flex';
+}
+function closePopup() {
+  document.getElementById('dealPopup').style.display = 'none';
+}
+function confirmDeal() {
+  window.location.href = 'appointment.html';
+}
+</script>
+
+
 </body>
 </html>
